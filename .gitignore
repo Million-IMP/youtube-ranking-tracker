@@ -1,0 +1,29 @@
+# 환경 변수 (절대 커밋 금지)
+.env
+
+# bkit 내부 상태 파일
+.bkit/
+
+# 의존성
+node_modules/
+
+# 빌드 결과물
+dist/
+
+# Supabase 로컬 런타임
+supabase/.temp/
+supabase/functions/.cache
+
+# 에디터
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
+npm-debug.log*

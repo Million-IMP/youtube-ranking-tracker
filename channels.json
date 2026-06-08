@@ -1,0 +1,17 @@
+{
+  "_comment": "채널 그룹별 관리. groups 안에 원하는 도메인을 자유롭게 추가하세요.",
+  "groups": {
+    "health_kr": {
+      "name": "한국 건강/헬스",
+      "channelIds": [
+        "UCoe-0EVDJnjlSoPK8ygcGwQ",
+        "UCpg89Ys3E4BaLGgEEWVmI9g",
+        "UCdtRAcd3L_UpV4tMXCw63NQ",
+        "UC3hRpIQ4x5niJDwjajQSVPg",
+        "UCygs-_iDpCJOnhuCZibK7JQ",
+        "UCAALfFyHolJ0jjgKoSMZ15Q",
+        "UCxM_KJ601hwrOpjVC07iMVQ"
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "youtube-ranking-tracker",
+  "version": "1.0.0",
+  "description": "YouTube channel ranking automation tracker",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "api": "node dist/server.js",
+    "api:dev": "ts-node src/server.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.4",
+    "@supabase/supabase-js": "^2.107.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0",
+    "hono": "^4.12.23"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}
