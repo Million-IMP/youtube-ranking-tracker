@@ -13,6 +13,7 @@ import { fetchLatestSnapshots, insertHistoryBatch, cleanupOldHistory } from './h
 import { createRunLog, completeRunLog } from './runlog';
 import { detectRankChanges, detectAnomalies, sendSlackAlert } from './alert';
 import { RankedChannelRecord, ScoringWeights, YouTubeTrackerError } from './types';
+import { config } from './config';
 
 export interface ChannelGroup {
   name: string;
@@ -96,7 +97,7 @@ export async function runTracker(
     await Promise.all([
       upsertRankings(rankings),
       insertHistoryBatch(rankings),
-      cleanupOldHistory(90),
+      cleanupOldHistory(config.historyRetentionDays),
     ]);
     savedToSupabase = true;
 

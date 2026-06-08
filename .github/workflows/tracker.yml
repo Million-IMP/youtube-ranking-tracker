@@ -25,7 +25,12 @@ jobs:
         run: npm run build
 
       - name: Run tracker
-        run: node dist/index.js
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 8
+          max_attempts: 2
+          retry_on: error
+          command: node dist/index.js
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

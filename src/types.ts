@@ -72,7 +72,7 @@ export interface RunLog {
   id?: number;
   started_at?: string;
   finished_at?: string;
-  status: 'running' | 'success' | 'failed';
+  status: 'running' | 'success' | 'partial' | 'failed';
   channel_count: number;
   success_count: number;
   error_count: number;
@@ -96,6 +96,14 @@ export interface RankChange {
   previousRank: number;
   currentRank: number;
   delta: number;
+  currentScore: number;
+  previousScore: number;
+  currentSubscribers: number;
+  previousSubscribers: number;
+  subscriberDelta: number;
+  subscriberDeltaRate: number;
+  currentAcceleration: number;
+  previousAcceleration: number;
 }
 
 /** Anomaly detection result */

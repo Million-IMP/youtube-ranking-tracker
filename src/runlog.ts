@@ -37,7 +37,7 @@ export async function completeRunLog(
   const { error } = await client
     .from('run_logs')
     .update({
-      status: errorCount > 0 && successCount === 0 ? 'failed' : 'success',
+      status: successCount === 0 ? 'failed' : errorCount > 0 ? 'partial' : 'success',
       finished_at: new Date().toISOString(),
       success_count: successCount,
       error_count: errorCount,

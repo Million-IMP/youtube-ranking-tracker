@@ -32,3 +32,13 @@ export async function fetchRankings(): Promise<RankedChannelRecord[]> {
   if (error) throw new Error(`Rankings fetch failed: ${error.message}`);
   return (data ?? []) as RankedChannelRecord[];
 }
+
+export async function fetchRankingById(channelId: string): Promise<RankedChannelRecord | null> {
+  const { data, error } = await getClient()
+    .from('youtube_rankings')
+    .select('*')
+    .eq('channel_id', channelId)
+    .maybeSingle();
+  if (error) throw new Error(`Ranking fetch failed: ${error.message}`);
+  return data as RankedChannelRecord | null;
+}

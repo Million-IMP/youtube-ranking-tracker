@@ -16,7 +16,7 @@ function getClient(): SupabaseClient {
 
 /**
  * Returns the most recent history snapshot per channel as a Map keyed by channel_id.
- * Used by delta.ts to calculate growth rates.
+ * Uses parallel individual queries (1 row per channel) to avoid loading full history tables.
  */
 export async function fetchLatestSnapshots(
   channelIds: string[]
@@ -25,18 +25,22 @@ export async function fetchLatestSnapshots(
 
   const client = getClient();
 
-  const { data, error } = await client
-    .from('youtube_rankings_history')
-    .select('*')
-    .in('channel_id', channelIds)
-    .order('snapshot_date', { ascending: false });
+  const results = await Promise.all(
+    channelIds.map((id) =>
+      client
+        .from('youtube_rankings_history')
+        .select('*')
+        .eq('channel_id', id)
+        .order('snapshot_date', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    )
+  );
 
-  if (error) throw new Error(`History fetch failed: ${error.message}`);
-
-  // De-duplicate: keep only the most recent snapshot per channel_id
   const map = new Map<string, HistoryRecord>();
-  for (const row of (data ?? []) as HistoryRecord[]) {
-    if (!map.has(row.channel_id)) map.set(row.channel_id, row);
+  for (let i = 0; i < channelIds.length; i++) {
+    const { data } = results[i];
+    if (data) map.set(channelIds[i], data as HistoryRecord);
   }
   return map;
 }

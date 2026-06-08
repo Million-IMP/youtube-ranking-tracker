@@ -7,22 +7,7 @@
 // large-scale metric (raw subscriber count) drowns out the others.
 
 import { EnrichedChannelStats, ScoredChannel, ScoringWeights } from './types';
-
-const WEIGHTS_NO_DELTA: ScoringWeights = {
-  acceleration: 0.50,
-  avgViews: 0.30,
-  subscribers: 0.20,
-  subscriberDelta: 0,
-  viewDelta: 0,
-};
-
-const WEIGHTS_WITH_DELTA: ScoringWeights = {
-  acceleration: 0.35,
-  avgViews: 0.20,
-  subscribers: 0.15,
-  subscriberDelta: 0.20,  // 7-day subscriber growth rate
-  viewDelta: 0.10,        // 7-day view growth rate
-};
+import { config } from './config';
 
 function minMaxNormalize(values: number[]): number[] {
   const min = Math.min(...values);
@@ -38,7 +23,7 @@ export function scoreChannels(
   if (channels.length === 0) return [];
 
   const hasDelta = channels.some((c) => c.hasPreviousData);
-  const baseWeights = hasDelta ? WEIGHTS_WITH_DELTA : WEIGHTS_NO_DELTA;
+  const baseWeights = hasDelta ? config.weightsWithDelta : config.weightsNoDelta;
   const w: ScoringWeights = { ...baseWeights, ...weightsOverride };
 
   const weightSum = w.acceleration + w.avgViews + w.subscribers + w.subscriberDelta + w.viewDelta;
