@@ -127,6 +127,35 @@ export interface TrendResult {
   dataPoints: number;
 }
 
+/** Row from youtube_video_snapshots */
+export interface VideoSnapshot {
+  video_id: string;
+  channel_id: string;
+  title: string;
+  published_at: string;
+  view_count: number;
+  like_count: number;
+  comment_count: number;
+  first_seen_at?: string;
+  last_updated_at?: string;
+  hot_alert_sent_at?: string | null;
+}
+
+/** Hot video alert emitted when a new video exceeds the view threshold */
+export interface HotVideoAlert {
+  videoId: string;
+  channelId: string;
+  channelTitle: string;
+  videoTitle: string;
+  publishedAt: string;
+  viewCount: number;
+  likeCount: number;
+  channelAvgViews: number;
+  viewRatioToAvg: number;
+  hoursSincePublished: number;
+  videoUrl: string;
+}
+
 /** API error types */
 export type YouTubeApiErrorCode =
   | 'QUOTA_EXCEEDED'

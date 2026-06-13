@@ -8,10 +8,11 @@ import { fetchChannels } from './fetch';
 import { enrichWithDeltas } from './delta';
 import { scoreChannels } from './scoring';
 import { formatOutput } from './format';
-import { upsertRankings, fetchRankings } from './supabase';
+import { upsertRankings, fetchRankings, upsertVideoSnapshots, fetchUnalertedRecentVideos, markVideosAsAlerted } from './supabase';
 import { fetchLatestSnapshots, insertHistoryBatch, cleanupOldHistory } from './history';
 import { createRunLog, completeRunLog } from './runlog';
-import { detectRankChanges, detectAnomalies, sendSlackAlert } from './alert';
+import { detectRankChanges, detectAnomalies, sendSlackAlert, detectHotVideos, sendSlackVideoAlert } from './alert';
+import { fetchRecentVideos } from './video';
 import { RankedChannelRecord, ScoringWeights, YouTubeTrackerError } from './types';
 import { config } from './config';
 
@@ -101,12 +102,44 @@ export async function runTracker(
     ]);
     savedToSupabase = true;
 
-    // Slack alerts (non-blocking — never fail the run)
     const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+
+    // Slack alerts — rank changes & anomalies (non-blocking)
     if (webhookUrl) {
       const changes = detectRankChanges(rankings, previousMap);
       const anomalies = detectAnomalies(rankings, previousMap);
       sendSlackAlert(changes, anomalies, webhookUrl).catch(() => {});
+    }
+
+    // Video monitoring — detect hot new videos
+    const channelAvgMap = new Map(rankings.map((r) => [r.channel_id, r.avg_views_per_video]));
+    const channelTitleMap = new Map(rankings.map((r) => [r.channel_id, r.title]));
+    try {
+      const rawVideos = await fetchRecentVideos(apiKey, ids, config.videoCheckMaxPerChannel);
+      if (rawVideos.length > 0) {
+        await upsertVideoSnapshots(rawVideos.map((v) => ({
+          video_id: v.videoId,
+          channel_id: v.channelId,
+          title: v.title,
+          published_at: v.publishedAt,
+          view_count: v.viewCount,
+          like_count: v.likeCount,
+          comment_count: v.commentCount,
+        })));
+        const unalerted = await fetchUnalertedRecentVideos(ids, config.hotVideoWindowHours);
+        const hotVideos = detectHotVideos(unalerted, channelAvgMap, channelTitleMap);
+        console.log(`[Video] ${rawVideos.length} videos synced, ${hotVideos.length} hot`);
+        if (hotVideos.length > 0) {
+          if (webhookUrl) {
+            await sendSlackVideoAlert(hotVideos, webhookUrl).catch((err) =>
+              console.error('[Video] Slack alert error:', (err as Error).message)
+            );
+          }
+          await markVideosAsAlerted(hotVideos.map((v) => v.videoId));
+        }
+      }
+    } catch (err) {
+      console.error('[Video] monitoring error:', (err as Error).message);
     }
   }
 

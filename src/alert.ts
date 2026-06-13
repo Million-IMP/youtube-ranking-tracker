@@ -1,7 +1,7 @@
 // ─── Alert & Anomaly Detection ───────────────────────────────────────────────
 // Detects rank changes and subscriber/view anomalies, then sends Slack notifications.
 
-import { RankedChannelRecord, HistoryRecord, RankChange, AnomalyAlert } from './types';
+import { RankedChannelRecord, HistoryRecord, RankChange, AnomalyAlert, VideoSnapshot, HotVideoAlert } from './types';
 import { config } from './config';
 
 export function detectRankChanges(
@@ -126,5 +126,102 @@ export async function sendSlackAlert(
 
   if (!res.ok) {
     console.error(`[Slack] Webhook responded with ${res.status}: ${await res.text()}`);
+  }
+}
+
+export function detectHotVideos(
+  videos: VideoSnapshot[],
+  channelAvgMap: Map<string, number>,
+  channelTitleMap: Map<string, string>
+): HotVideoAlert[] {
+  const now = Date.now();
+  const alerts: HotVideoAlert[] = [];
+
+  for (const v of videos) {
+    const channelAvg = channelAvgMap.get(v.channel_id) ?? 0;
+    if (channelAvg === 0) continue;
+
+    const hoursSince = (now - new Date(v.published_at).getTime()) / (1000 * 60 * 60);
+    const ratio = v.view_count / channelAvg;
+
+    if (ratio < config.hotVideoThresholdMultiplier) continue;
+
+    alerts.push({
+      videoId: v.video_id,
+      channelId: v.channel_id,
+      channelTitle: channelTitleMap.get(v.channel_id) ?? v.channel_id,
+      videoTitle: v.title,
+      publishedAt: v.published_at,
+      viewCount: v.view_count,
+      likeCount: v.like_count,
+      channelAvgViews: channelAvg,
+      viewRatioToAvg: ratio,
+      hoursSincePublished: hoursSince,
+      videoUrl: `https://www.youtube.com/watch?v=${v.video_id}`,
+    });
+  }
+
+  return alerts.sort((a, b) => b.viewRatioToAvg - a.viewRatioToAvg);
+}
+
+export async function sendSlackVideoAlert(
+  hotVideos: HotVideoAlert[],
+  webhookUrl: string
+): Promise<void> {
+  if (hotVideos.length === 0) return;
+
+  const date = new Date().toLocaleDateString('ko-KR');
+  const fallbackText = `🔥 핫 영상 감지 ${hotVideos.length}건 — ${date}`;
+
+  const blocks: unknown[] = [
+    {
+      type: 'header',
+      text: { type: 'plain_text', text: `🔥 핫 영상 감지 — ${date}`, emoji: true },
+    },
+  ];
+
+  for (const v of hotVideos) {
+    const ratioPct = (v.viewRatioToAvg * 100).toFixed(0);
+    const hours = Math.round(v.hoursSincePublished);
+    const views = v.viewCount.toLocaleString('ko-KR');
+    const likes = v.likeCount.toLocaleString('ko-KR');
+
+    blocks.push(
+      {
+        type: 'image',
+        image_url: `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+        alt_text: v.videoTitle,
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: [
+            `*<${v.videoUrl}|${v.videoTitle}>*`,
+            `채널: *${v.channelTitle}*`,
+            `조회수: *${views}회* — 채널 평균의 *${ratioPct}%* (업로드 ${hours}시간 만에)`,
+            `좋아요: ${likes}`,
+          ].join('\n'),
+        },
+        accessory: {
+          type: 'button',
+          text: { type: 'plain_text', text: '영상 보기 →', emoji: false },
+          url: v.videoUrl,
+        },
+      },
+      { type: 'divider' },
+    );
+  }
+
+  const res = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: fallbackText, blocks }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[Slack] Hot video alert failed: ${res.status} — ${body}`);
+    throw new Error(`Slack hot video alert failed: ${res.status}`);
   }
 }
