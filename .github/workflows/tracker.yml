@@ -1,12 +1,14 @@
 name: YouTube Ranking Tracker
 
 on:
-  # schedule 트리거는 GitHub Actions 지연(4~5h) 문제로 cron-job.org로 대체.
-  # cron-job.org에서 01:00 UTC에 workflow_dispatch API를 직접 호출함.
+  # schedule 트리거는 GitHub Actions 지연(4~5h) 문제로 Supabase pg_cron으로 대체.
+  # Supabase pg_cron(cron.job "trigger-youtube-tracker")이 매일 01:00 UTC에
+  # pg_net.http_post()로 workflow_dispatch API를 직접 호출 → 지연 없음.
+  # 토큰은 Supabase Vault("github_dispatch_pat")에 암호화 저장.
   # 이중 실행 방지를 위해 schedule 트리거는 비활성화.
   # schedule:
   #   - cron: '0 1 * * *'   # 매일 01:00 UTC = 10:00 KST
-  workflow_dispatch:        # cron-job.org 또는 수동 실행
+  workflow_dispatch:        # Supabase pg_cron 또는 수동 실행
 
 jobs:
   track:
